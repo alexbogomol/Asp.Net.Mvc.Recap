@@ -38,9 +38,8 @@ public class MvcApplication : HttpApplication
     {
 		// ...other stuff
         
-		ControllerBuilder
-            .Current
-            .SetControllerFactory(new CustomControllerFactory());
+		ControllerBuilder.Current
+                         .SetControllerFactory(new CustomControllerFactory());
 	}
 }
 ```

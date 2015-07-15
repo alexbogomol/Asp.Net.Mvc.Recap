@@ -37,13 +37,14 @@ namespace System.Web.Mvc
     {
         // ... other stuff
         
-        public virtual bool InvokeAction(ControllerContext controllerContext, string actionName)
+        public virtual bool InvokeAction(ControllerContext controllerContext, 
+                                         string actionName)
         { ... }
     }
 }
 ```
 
-Controller supports asynchronous operations by default, so **AsyncControllerActionInvoker** is the current default implementation for `IActionInvoker`. This implementation is used for the default case when no custom invokers or invoker-factories provided.
+Controller supports asynchronous operations by default, so **AsyncControllerActionInvoker** is the current default implementation for `IActionInvoker`. This implementation is used **by default** when no custom invokers or invoker-factories provided.
 
 ``` csharp
 namespace System.Web.Mvc.Async
@@ -67,7 +68,7 @@ namespace System.Web.Mvc.Async
 #### The action-invoker instantiation process (Controller)
 
 * The `.CreateActionInvoker()` is the protected virtual method of the `Controller`, so it can be easily overriden in any our derived controller-class to provide our specific instantiation process for action invoker (or its custom version).
-* The instantiation process makes use of two factory interfaces: `IActionInvokerFactory` and its async mate `IAsyncActionInvokerFactory`. So we can provide our own factories implementations.
+* The instantiation process makes use of two factory interfaces: `IActionInvokerFactory` and its async mate `IAsyncActionInvokerFactory`. Those factories can be customized in order to create an action invoker for each request. So we can provide our own factories implementations.
 * For those cases when there are no factories provided, process makes a try to search for custom implementations of `IAsyncActionInvoker` and `IActionInvoker`. Async version is more appropriate.
 * Ultimately, the default `AsyncControllerActionInvoker` is used by the framework if no customizations were found.
 
@@ -80,28 +81,21 @@ namespace System.Web.Mvc
         
         protected virtual IActionInvoker CreateActionInvoker()
         {
-            // Controller supports asynchronous operations by default. 
-            // Those factories can be customized in order to create an 
-            // action invoker for each request.
-            
             IAsyncActionInvokerFactory asyncActionInvokerFactory = 
                 Resolver.GetService<IAsyncActionInvokerFactory>();
+            
             if (asyncActionInvokerFactory != null)
             {
                 return asyncActionInvokerFactory.CreateInstance();
             }
             
-            // If async factory was not found - search for sync equivalents
-            
             IActionInvokerFactory actionInvokerFactory = 
                 Resolver.GetService<IActionInvokerFactory>();
+            
             if (actionInvokerFactory != null)
             {
                 return actionInvokerFactory.CreateInstance();
             }
-            
-            // Note that getting a service from the current cache
-            // will return the same instance for every request.
             
             return Resolver.GetService<IAsyncActionInvoker>()
                 ?? Resolver.GetService<IActionInvoker>() 
@@ -113,7 +107,7 @@ namespace System.Web.Mvc
 
 #### The .InvokeAction() process (ControllerActionInvoker)
 
-For the purpose of sake here we look through the sync version of action-invoke process
+For the sake of brevity here we look through the sync version of action-invoke process
 
 ``` csharp
 public virtual bool InvokeAction(ControllerContext controllerContext, string actionName)
@@ -238,10 +232,11 @@ protected virtual ControllerDescriptor GetControllerDescriptor(ControllerContext
     // Frequently called, so ensure delegate is static
     Type controllerType = controllerContext.Controller.GetType();
     
-    ControllerDescriptor controllerDescriptor = DescriptorCache.GetDescriptor(
-        controllerType: controllerType,
-        creator: (Type innerType) => new ReflectedControllerDescriptor(innerType),
-        state: controllerType);
+    ControllerDescriptor controllerDescriptor = 
+                         DescriptorCache.GetDescriptor(
+                            controllerType: controllerType,
+                            creator: (Type innerType) => new ReflectedControllerDescriptor(innerType),
+                            state: controllerType);
         
     return controllerDescriptor;
 }
