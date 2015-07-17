@@ -1,32 +1,6 @@
-### ActionInvoker
+### Controller Action Invoker
 
-#### Abstractions
-
-``` csharp
-namespace System.Web.Mvc
-{
-    public interface IActionInvoker
-    {
-        bool InvokeAction(ControllerContext controllerContext, 
-                          string actionName);
-    }
-}
-
-namespace System.Web.Mvc.Async
-{
-    public interface IAsyncActionInvoker : IActionInvoker
-    {
-        IAsyncResult BeginInvokeAction(ControllerContext controllerContext, 
-                                       string actionName, 
-                                       AsyncCallback callback, 
-                                       object state);
-
-        bool EndInvokeAction(IAsyncResult asyncResult);
-    }
-}
-```
-
-#### Implementations
+#### ControllerActionInvoker class
 
 **ControllerActionInvoker** is the basic (legacy) implementation for `IActionInvoker` in Asp.Net.Mvc framework.
 
@@ -43,6 +17,8 @@ namespace System.Web.Mvc
     }
 }
 ```
+
+#### AsyncControllerActionInvoker class
 
 Controller supports asynchronous operations by default, so **AsyncControllerActionInvoker** is the current default implementation for `IActionInvoker`. This implementation is used **by default** when no custom invokers or invoker-factories provided.
 
