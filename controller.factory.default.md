@@ -1,4 +1,4 @@
-### DefaultControllerFactory class
+### Default Controller Factory
 
 #### Controller classes requirements by DefaultControllerFactory
 
@@ -8,7 +8,7 @@
 * The name of the class must end with **...Controller**.
 * The class must implement the `IController` interface.
 
-#### DefaultControllerFactory
+#### DefaultControllerFactory class
 
 ``` csharp
 namespace System.Web.Mvc
@@ -31,6 +31,51 @@ namespace System.Web.Mvc
         protected internal virtual SessionStateBehavior GetControllerSessionBehavior(RequestContext requestContext,
                                                                                      Type controllerType);
         public virtual void ReleaseController(IController controller);
+    }
+}
+```
+
+#### Resolving the instance of IControllerActivator
+
+``` csharp
+namespace System.Web.Mvc
+{
+    public class DefaultControllerFactory : IControllerFactory
+    {
+        // ... other stuff
+        
+        internal DefaultControllerFactory(IControllerActivator controllerActivator, 
+                                          IResolver<IControllerActivator> activatorResolver, 
+                                          IDependencyResolver dependencyResolver)
+        {
+            if (controllerActivator != null)
+            {
+                _controllerActivator = controllerActivator;
+            }
+            else
+            {
+                _activatorResolver = activatorResolver 
+                                  ?? new SingleServiceResolver<IControllerActivator>(
+                                             () => null,
+                                             new DefaultControllerActivator(dependencyResolver),
+                                             "DefaultControllerFactory constructor");
+            }
+        }
+
+        private IControllerActivator ControllerActivator
+        {
+            get
+            {
+                if (_controllerActivator != null)
+                {
+                    return _controllerActivator;
+                }
+                
+                _controllerActivator = _activatorResolver.Current;
+                
+                return _controllerActivator;
+            }
+        }
     }
 }
 ```

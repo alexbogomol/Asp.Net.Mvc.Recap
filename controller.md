@@ -28,24 +28,28 @@ namespace System.Web.Mvc.Async
 
 #### Custom IController Implementation
 
-This is how we can implement our own `IController`. This implementation substitutes almost all the framework functionality, because it short-cuts the concept of actions|results|filters and process of action-decision. So we can use our own implementations for super-specific cotrollers. The standard approach is to derive the existing abstract **Controller**.
+This is how we can implement our own `IController`. This implementation substitutes almost all the framework functionality, because it short-cuts the concept of actions|results|filters and process of action-decision. So we can use our own implementations for super-specific cotrollers. The standard approach is to derive from the existing abstract **Controller**.
 
 ``` csharp
 public class BasicController : IController 
 {
+    private string urlRedirect = "some/other/location";
+    private string msgFormat = "Controller: {0}, Action: {1}";
+    
     public void Execute(RequestContext requestContext)
     {
         string controller = (string)requestContext.RouteData.Values["controller"];
         string action     = (string)requestContext.RouteData.Values["action"];
 
-        if (action == "redirect") 
+        if (action == "redirect")
         {
-            var url = "some/other/location";
-            requestContext.HttpContext.Response.Redirect(url);
+            requestContext.HttpContext.Response.Redirect(urlRedirect);
+            
             return;
-        } 
+        }
         
-        var message = string.Format("Controller: {0}, Action: {1}", controller, action);
+        var message = string.Format(msgFormat, controller, action);
+        
         requestContext.HttpContext.Response.Write(message);
     }
 }
