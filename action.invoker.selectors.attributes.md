@@ -1,6 +1,6 @@
 ### Controlling Action Invoker
 
-Action Invoker operates by conventions, but it can be customized to our needs with the influenсe of attributes, annotating the decided action methods of the controller.
+Action Invoker operates by conventions, and it can be customized to our needs with the influenсe of attributes, annotating the decided action methods of the controller.
 
 This effect can be achieved by deriving from the abstractions, used by __ControllerActionInvoker__:
 * __ActionNameSelectorAttribute__
@@ -107,7 +107,8 @@ namespace System.Web.Mvc
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public sealed class NonActionAttribute : ActionMethodSelectorAttribute
     {
-        public override bool IsValidForRequest(ControllerContext controllerContext, MethodInfo methodInfo)
+        public override bool IsValidForRequest(ControllerContext controllerContext, 
+                                               MethodInfo methodInfo)
         {
             return false;
         }
@@ -119,7 +120,8 @@ namespace System.Web.Mvc
         private static readonly AcceptVerbsAttribute _innerAttribute = 
             new AcceptVerbsAttribute(HttpVerbs.Post);
 
-        public override bool IsValidForRequest(ControllerContext controllerContext, MethodInfo methodInfo)
+        public override bool IsValidForRequest(ControllerContext controllerContext, 
+                                               MethodInfo methodInfo)
         {
             return _innerAttribute.IsValidForRequest(controllerContext, methodInfo);
         }
@@ -132,14 +134,14 @@ namespace System.Web.Mvc
 ```csharp
 public class CustomerController : Controller 
 {
-    // GET /Customer/Index
+    // GET: /Customer/Index
     
     public ViewResult Index()
     {
         return View("Result", new Result{ ... });
     }
     
-    // GET /Customer/Enumerate
+    // GET: /Customer/Enumerate
     
     [ActionName("Enumerate")]
     public ViewResult List()
@@ -147,7 +149,7 @@ public class CustomerController : Controller
         return View("Result", new Result { ... });
     }
     
-    // POST /Customer/Save
+    // POST: /Customer/Save
     
     [ActionName("Save")]
     [HttpPost]
