@@ -1,13 +1,15 @@
-### Controlling Action Invoker
+### Customizing the Process of Action and Method Selection
 
-Action Invoker operates by conventions, and it can be customized to our needs with the influenсe of attributes, annotating the decided action methods of the controller.
+__ControllerActionInvoker__ has a conventions-driven process of action-decision. This process can be easily customized to our needs with the influenсe of attributes, annotating the decided action methods of the controller.
 
 This effect can be achieved by deriving from the abstractions, used by __ControllerActionInvoker__:
 * __ActionNameSelectorAttribute__
 * __ActionMethodSelectorAttribute__
 
-#### Action Name Selection
-* __ActionName__
+#### Process of Action Name Selection
+
+Firstly, __ControllerActionInvoker__ decides the name of the action to be executed. This step can be influenсed with help of attributes, deriving from the abstract __ActionNameSelectorAttribute__:
+* Built-In __ActionNameAttribute__
 * Custom implementations
 
 ##### Action Name Selector Abstraction
@@ -60,9 +62,13 @@ namespace System.Web.Mvc
 }
 ```
 
-#### Action Method Selection
-* __HttpPost__, __Http[Verb]__
-* __NonAction__
+#### Process of Action Method Selection
+
+When __ControllerActionInvoker__ knows the name of the action to be executed, it must decide the corresponding controller method for this action name.
+
+We can disambiguate the decision-process with help of attributes, deriving from the abstract __ActionMethodSelectorAttribute__:
+* Built-In __Http[Verb]Attribute__
+* Built-In __NonActionAttribute__
 * Custom Implementations
 
 ##### Action Method Selector Abstraction
@@ -81,7 +87,7 @@ namespace System.Web.Mvc
 }
 ```
 
-##### Action Method Selector Implemetation
+##### Custom Action Method Selector Implemetation
 
 All we have to do when defining our custom __ActionMethodSelectorAttribute__ - is just answer the question:
 * _"Is the annotated method valid for this request?"_
