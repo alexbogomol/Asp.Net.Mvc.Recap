@@ -1,4 +1,4 @@
-### Controller Action Invoker
+### Built-In (default) Action Invoker
 
 #### ControllerActionInvoker class
 
@@ -43,6 +43,32 @@ namespace System.Web.Mvc.Async
 
 #### The action-invoker instantiation process (Controller)
 
+Action-invoker is an infrastructure element of the __Controller__.
+
+```csharp
+namespace System.Web.Mvc
+{
+    public abstract class Controller : ControllerBase, ...
+    {
+        // ... omitted stuff
+        private IActionInvoker _actionInvoker;
+        
+        public IActionInvoker ActionInvoker
+        {
+            get
+            {
+                if (_actionInvoker == null)
+                {
+                    _actionInvoker = CreateActionInvoker();
+                }
+                return _actionInvoker;
+            }
+            set { _actionInvoker = value; }
+        }
+    }
+}
+```
+
 * The `.CreateActionInvoker()` is the protected virtual method of the `Controller`, so it can be easily overriden in any our derived controller-class to provide our specific instantiation process for action invoker (or its custom version).
 * The instantiation process makes use of two factory interfaces: `IActionInvokerFactory` and its async mate `IAsyncActionInvokerFactory`. Those factories can be customized in order to create an action invoker for each request. So we can provide our own factories implementations.
 * For those cases when there are no factories provided, process makes a try to search for custom implementations of `IAsyncActionInvoker` and `IActionInvoker`. Async version is more appropriate.
@@ -53,7 +79,7 @@ namespace System.Web.Mvc
 {
     public abstract class Controller : ControllerBase, ...
     {
-        // ... other stuff
+        // ... omitted stuff
         
         protected virtual IActionInvoker CreateActionInvoker()
         {
@@ -81,7 +107,33 @@ namespace System.Web.Mvc
 }
 ```
 
-#### The .InvokeAction() process (ControllerActionInvoker)
+#### The Process of .InvokeAction()
+
+As a recall, let's see how the `IActionInvoker` is used by the __Controller__:
+
+``` csharp
+namespace System.Web.Mvc
+{
+    public abstract class Controller : ControllerBase //, ... omitted stuff
+    {
+        // ... omitted stuff
+        
+        protected override void ExecuteCore()
+        {
+            // ... omitted stuff
+            
+            string actionName = GetActionName(RouteData);
+            
+            if (!ActionInvoker.InvokeAction(ControllerContext, actionName))
+            {
+                HandleUnknownAction(actionName);
+            }
+            
+            // ... omitted stuff
+        }
+    }
+}
+```
 
 For the sake of brevity here we look through the sync version of action-invoke process
 
@@ -202,20 +254,23 @@ public virtual bool InvokeAction(ControllerContext controllerContext, string act
 
 #### Get the ControllerDescriptor for ControllerActionInvoker
 
+__ControllerDescriptor__ abstraction used by __ControllerActionInvoker__ to get the listing of actions, available to call. The default implementation for __ControllerDescriptor__ is __ReflectedControllerDescriptor__.
+
 ``` csharp
 protected virtual ControllerDescriptor GetControllerDescriptor(ControllerContext controllerContext)
 {
     // Frequently called, so ensure delegate is static
     Type controllerType = controllerContext.Controller.GetType();
-    
+
     ControllerDescriptor controllerDescriptor = 
                          DescriptorCache.GetDescriptor(
-                            controllerType: controllerType,
-                            creator: (Type innerType) => new ReflectedControllerDescriptor(innerType),
-                            state: controllerType);
-        
+                             controllerType: controllerType,
+                             creator: (Type innerType) => new ReflectedControllerDescriptor(innerType),
+                             state: controllerType);
+
     return controllerDescriptor;
 }
+
 ```
 
 #### FindAction process for ControllerActionInvoker
@@ -260,3 +315,7 @@ protected virtual ActionDescriptor FindAction(ControllerContext controllerContex
     }
 }
 ```
+
+##### References:
+* http://www.pieterg.com/2013/4/aspnet-mvc-under-the-hood-part-5
+* http://www.developermemo.com/3068327/
