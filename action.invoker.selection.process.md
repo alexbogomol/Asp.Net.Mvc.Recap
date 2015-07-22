@@ -26,6 +26,90 @@ namespace System.Web.Mvc
 }
 ```
 
+#### ControlerDescriptor Abstraction
+
+``` csharp
+namespace System.Web.Mvc
+{
+    public abstract class ControllerDescriptor : ICustomAttributeProvider, IUniquelyIdentifiable
+    {
+        public virtual string ControllerName { get { ... } }
+
+        public abstract Type ControllerType { get; }
+
+        public abstract ActionDescriptor FindAction(ControllerContext controllerContext, 
+                                                    string actionName);
+
+        public abstract ActionDescriptor[] GetCanonicalActions();
+
+        public virtual IEnumerable<FilterAttribute> GetFilterAttributes(bool useCache) { ... }
+
+		// ICustomAttributeProvider Implementation
+        public virtual object[] GetCustomAttributes(bool inherit) { ... }
+
+        public virtual object[] GetCustomAttributes(Type attributeType, bool inherit) { ... }
+
+        public virtual bool IsDefined(Type attributeType, bool inherit) { return false; }
+
+		// IUniquelyIdentifiable Implementation
+        public virtual string UniqueId { get { ... } }
+    }
+}
+```
+
+#### ActionDescriptor Method Verification
+
+Action-method candidate must pass through the following set of rules to be considered as _callable_:
+* it cannot be __static__
+* it cannot be a method of __non-ControllerBase__-inherited instance
+* it cannot be __generic__ method
+* it cannot be a method with __ref/out__ parameters
+
+``` csharp
+namespace System.Web.Mvc
+{
+    public abstract class ActionDescriptor : ICustomAttributeProvider, IUniquelyIdentifiable
+    {
+        // ... omitted stuff
+        
+        internal static string VerifyActionMethodIsCallable(MethodInfo methodInfo)
+        {
+            // we can't call static methods
+            if (methodInfo.IsStatic)
+            {
+                return "Cannot Call Static Method";
+            }
+
+            // we can't call instance methods where the 'this' parameter 
+            // is a type other than ControllerBase
+            if (!typeof(ControllerBase).IsAssignableFrom(methodInfo.ReflectedType))
+            {
+                return "Cannot Call Instance Method On Non-Controller Type";
+            }
+
+            // we can't call methods with open generic type parameters
+            if (methodInfo.ContainsGenericParameters)
+            {
+                return "Cannot Call Open Generic Methods";
+            }
+
+            // we can't call methods with ref/out parameters
+            ParameterInfo[] parameterInfos = methodInfo.GetParameters();
+            foreach (ParameterInfo parameterInfo in parameterInfos)
+            {
+                if (parameterInfo.IsOut || parameterInfo.ParameterType.IsByRef)
+                {
+                    return "Cannot Call Methods With Out Or Ref Parameters";
+                }
+            }
+
+            // we can call this method
+            return null;
+        }
+    }
+}
+```
+
 #### Get the ControllerDescriptor for ControllerActionInvoker
 
 __ControllerDescriptor__ abstraction is used by the __ControllerActionInvoker__ to get the listing of actions, available to call. The default implementation for __ControllerDescriptor__ is __ReflectedControllerDescriptor__.
