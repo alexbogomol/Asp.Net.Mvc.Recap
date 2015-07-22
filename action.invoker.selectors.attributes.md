@@ -6,7 +6,7 @@ This effect can be achieved by deriving from the abstractions, used by __Control
 * __ActionNameSelectorAttribute__
 * __ActionMethodSelectorAttribute__
 
-#### Process of Action Name Selection
+#### The Process of Action Name Selection
 
 Firstly, __ControllerActionInvoker__ decides the name of the action to be executed. This step can be influenсed with help of attributes, deriving from the abstract __ActionNameSelectorAttribute__:
 * Built-In __ActionNameAttribute__
@@ -62,9 +62,9 @@ namespace System.Web.Mvc
 }
 ```
 
-#### Process of Action Method Selection
+#### The Process of Action Method Selection
 
-When __ControllerActionInvoker__ knows the name of the action to be executed, it must decide the corresponding controller method for this action name.
+When the __ControllerActionInvoker__ knows the name of an action to be executed, it must decide the corresponding controller method for this action name.
 
 We can disambiguate the decision-process with help of attributes, deriving from the abstract __ActionMethodSelectorAttribute__:
 * Built-In __Http[Verb]Attribute__
