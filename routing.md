@@ -49,6 +49,24 @@ namespace System.Web.Routing
     }
 }
 ```
+
+#### MSDN: Key Classes for Asp.Net Routing
+
+Source: [__MSDN | ASP.NET Routing__](https://msdn.microsoft.com/en-us/library/cc668201.aspx)
+
+__Class__ | __Description__
+----- | -----------
+[__Route__](https://msdn.microsoft.com/en-us/library/system.web.routing.route.aspx) | Represents a route in a Web Forms or MVC application
+[__RouteBase__](https://msdn.microsoft.com/en-us/library/system.web.routing.routebase.aspx) | Serves as the base class for all classes that represent an ASP.NET route
+[__RouteTable__](https://msdn.microsoft.com/en-us/library/system.web.routing.routetable.aspx) | Stores the routes for an application
+[__RouteCollection__](https://msdn.microsoft.com/en-us/library/system.web.routing.routecollection.aspx) | Provides methods that enable you to manage a collection of routes
+[__RouteCollectionExtensions__](https://msdn.microsoft.com/en-us/library/system.web.mvc.routecollectionextensions.aspx) | Provides additional methods that enable you to manage a collection of routes in MVC applications
+[__RouteData__](https://msdn.microsoft.com/en-us/library/system.web.routing.routedata.aspx) | Contains the values for a requested route
+[__RequestContext__](https://msdn.microsoft.com/en-us/library/system.web.routing.requestcontext.aspx) | Contains information about the HTTP request that corresponds to a route
+[__StopRoutingHandler__](https://msdn.microsoft.com/en-us/library/system.web.routing.stoproutinghandler.aspx) | Provides a way to specify that ASP.NET routing should not handle requests for a URL pattern
+[__RouteValueDictionary__](https://msdn.microsoft.com/en-us/library/system.web.routing.routevaluedictionary.aspx) | Provides a way to store route Constraints, Defaults, and DataTokens objects
+[__VirtualPathData__](https://msdn.microsoft.com/en-us/library/system.web.routing.virtualpathdata.aspx) | Provides a way to generate URLs from route information
+
 #### MSDN: How URLs Are Matched to Routes
 
 [__MSDN | ASP.NET Routing__](https://msdn.microsoft.com/en-us/library/cc668201.aspx): When routing handles URL requests, it tries to match the URL of the request to a route. Matching a URL request to a route depends on all the following conditions:
