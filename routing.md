@@ -49,6 +49,22 @@ namespace System.Web.Routing
     }
 }
 ```
+#### MSDN: How URLs Are Matched to Routes
+
+[__MSDN | ASP.NET Routing__](https://msdn.microsoft.com/en-us/library/cc668201.aspx): When routing handles URL requests, it tries to match the URL of the request to a route. Matching a URL request to a route depends on all the following conditions:
+
+* The __route patterns__ that you have defined or the default route patterns, if any, that are included in your project type.
+* The __order__ in which you added them to the Routes collection.
+* Any __default values__ that you have provided for a route.
+* Any __constraints__ that you have provided for a route.
+* Whether you have defined routing to handle requests that match a physical file.
+
+To avoid having the wrong handler handle a request, you must consider all these conditions when you define routes.
+* The order in which __Route__ objects appear in the __RouteCollection__ is significant.
+* Route matching is tried from the first route to the last route in the collection.
+* When a match occurs, no more routes are evaluated.
+
+In general, __add routes to the Routes property in order from the most specific route definitions to least specific ones__.
 
 #### RouteCollection : Collection<RouteBase>
 
@@ -103,7 +119,7 @@ This method does the following:
 * adds the route to the __RouteCollection__
 * issues the route in return
 
-[__MSDN__ says:](https://msdn.microsoft.com/en-us/library/system.web.routing.route.aspx): "*The __Route__ class enables you to specify how routing is processed in an ASP.NET application. You create a __Route__ object for each URL pattern that you want to map to a class that can handle requests that correspond to that pattern. You then add the route to the __RouteCollection__. When the application receives a request, ASP.NET routing iterates through the routes in the __RouteCollection__ to find the first route that matches the pattern of the URL.*"
+[__MSDN | Route Class__](https://msdn.microsoft.com/en-us/library/system.web.routing.route.aspx): "*The __Route__ class enables you to specify how routing is processed in an ASP.NET application. You create a __Route__ object for each URL pattern that you want to map to a class that can handle requests that correspond to that pattern. You then add the route to the __RouteCollection__. When the application receives a request, ASP.NET routing iterates through the routes in the __RouteCollection__ to find the first route that matches the pattern of the URL.*"
 
 ``` csharp
 namespace System.Web.Mvc
