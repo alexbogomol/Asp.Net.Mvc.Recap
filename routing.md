@@ -16,7 +16,7 @@ public interface IHttpHandler
 }
 ```
 
-#### UrlRoutingModule : IHttpModule
+#### UrlRoutingModule (IHttpModule)
 
 ``` csharp
 namespace System.Web.Routing
@@ -25,10 +25,17 @@ namespace System.Web.Routing
     {
         // ... other stuff
         
+        public RouteCollection RouteCollection { get; set; } = RouteTable.Routes;
+        
+        /*
+         * Very much simplified!
+         * Just the main flow extracted.
+         */
+        
         public virtual void PostResolveRequestCache(HttpContextBase context)
         {
             // get the route handler
-            RouteData routeData = this.RouteCollection.GetRouteData(context);
+            RouteData routeData = RouteCollection.GetRouteData(context);
             IRouteHandler routeHandler = routeData.RouteHandler;
             
             // create request context
@@ -87,6 +94,17 @@ public override RouteData GetRouteData(HttpContextBase httpContext)
 
 #### MapRoute to RouteCollection
 
+__RouteCollectionExtensions__ provides the extention __.MapRoute()__ method (+overloads) for __RouteCollection__.
+
+This method does the following:
+* creates a new __MvcRouteHandler__ (__`IRouteHandler`__)
+* creates a new __Route__, mapping the url-pattern provided to the handler just created
+* sets up the created route with parameters: defaults, constraints, datatokens
+* adds the route to the __RouteCollection__
+* issues the route in return
+
+[__MSDN__ says:](https://msdn.microsoft.com/en-us/library/system.web.routing.route.aspx): "*The __Route__ class enables you to specify how routing is processed in an ASP.NET application. You create a __Route__ object for each URL pattern that you want to map to a class that can handle requests that correspond to that pattern. You then add the route to the __RouteCollection__. When the application receives a request, ASP.NET routing iterates through the routes in the __RouteCollection__ to find the first route that matches the pattern of the URL.*"
+
 ``` csharp
 namespace System.Web.Mvc
 {
@@ -101,7 +119,7 @@ namespace System.Web.Mvc
                                      object constraints, 
                                      string[] namespaces)
         {
-            // ... check 'route' and 'url' against null values
+            // ... omitted stuff
             
             Route route = new Route(url, new MvcRouteHandler())
             {
