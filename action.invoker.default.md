@@ -1,6 +1,6 @@
 ### Built-In (default) Action Invoker
 
-#### ControllerActionInvoker class
+#### Built-In ControllerActionInvoker
 
 __ControllerActionInvoker__ is the basic (legacy) implementation for `IActionInvoker` in Asp.Net.Mvc framework.
 
@@ -18,7 +18,7 @@ namespace System.Web.Mvc
 }
 ```
 
-#### AsyncControllerActionInvoker class
+#### Built-In AsyncControllerActionInvoker
 
 __Controller__ supports asynchronous operations by default, so __AsyncControllerActionInvoker__ is the current default implementation for `IActionInvoker`. This implementation is used by default when no custom invokers or invoker-factories are provided.
 
@@ -41,9 +41,9 @@ namespace System.Web.Mvc.Async
 }
 ```
 
-#### The process of action-invoker instantiation (Controller)
+#### Controller: The 'ActionInvoker' Property
 
-Action-invoker is an infrastructure element of the __Controller__.
+Any provided `IActionInvoker` implementation becomes an infrastructure element of the __Controller__, accessible via the public __ActionInvoker__ property of it.
 
 ```csharp
 namespace System.Web.Mvc
@@ -51,28 +51,19 @@ namespace System.Web.Mvc
     public abstract class Controller : ControllerBase, ...
     {
         // ... omitted stuff
-        private IActionInvoker _actionInvoker;
         
-        public IActionInvoker ActionInvoker
-        {
-            get
-            {
-                if (_actionInvoker == null)
-                {
-                    _actionInvoker = CreateActionInvoker();
-                }
-                return _actionInvoker;
-            }
-            set { _actionInvoker = value; }
-        }
+        public IActionInvoker ActionInvoker { get; set; } = CreateActionInvoker();
     }
 }
 ```
 
-* The `.CreateActionInvoker()` is the protected virtual method of the `Controller`, so it can be easily overriden in any our derived controller-class to provide our specific instantiation process for action invoker (or its custom version).
+#### Controller: The Process of ActionInvoker Instantiation
+
+* Any provided implementation of `IActionInvoker` can be set via the public __ActionInvoker__ property.
+* The `.CreateActionInvoker()` is the protected virtual method of the `Controller`, so we can easily override it when subclassing our __Controller__ to provide the specific process for action-invoker instantiation.
 * The instantiation process makes use of two factory interfaces: `IActionInvokerFactory` and its async mate `IAsyncActionInvokerFactory`. Those factories can be customized in order to create an action invoker for each request. So we can provide our own factories implementations.
 * For those cases when there are no factories provided, process makes a try to search for custom implementations of `IAsyncActionInvoker` and `IActionInvoker`. Async version is more appropriate.
-* Ultimately, the default __AsyncControllerActionInvoker__ is used by the framework if no customizations were found.
+* Ultimately, the default __AsyncControllerActionInvoker__ is used by the framework if no alternatives were provided.
 
 ``` csharp
 namespace System.Web.Mvc
@@ -107,7 +98,7 @@ namespace System.Web.Mvc
 }
 ```
 
-#### The Process of .InvokeAction()
+#### Controller: Using ActionInvoker
 
 As a recall, let's first see how the `IActionInvoker` is used by the __Controller__:
 
@@ -118,11 +109,11 @@ namespace System.Web.Mvc
     {
         // ... omitted stuff
         
+        public IActionInvoker ActionInvoker { get { ... } set { ... } }
+        
         protected override void ExecuteCore()
         {
             // ... omitted stuff
-            
-            string actionName = GetActionName(RouteData);
             
             if (!ActionInvoker.InvokeAction(ControllerContext, actionName))
             {
@@ -134,6 +125,8 @@ namespace System.Web.Mvc
     }
 }
 ```
+
+#### ControllerActionInvoker: The Process of .InvokeAction()
 
 For the sake of brevity here we look through the sync version of action-invoke process of the __ControllerActionInvoker__:
 
