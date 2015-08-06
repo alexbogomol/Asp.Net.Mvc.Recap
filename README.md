@@ -13,7 +13,7 @@ Step | Abstraction                                | Implementation
 3    | `IControllerFactory.CreateController`      | __DefaultControllerFactory__
 4    | `IControllerActivator.Create`              | __DefaultControllerActivator__
 5    | `IController.Execute`                      | __Controller : ControllerBase__
-6    | `IActionInvoker.InvokeAction`              | __AsyncControllerActionInvoker__
+6    | [`IActionInvoker.InvokeAction`](/pages/action.invoker.abstraction.md) | [__AsyncControllerActionInvoker__](/pages/action.invoker.default.md)
 7    | `IAuthenticationFilter[].OnAuthentication` | 
 8    | `IAuthorizationFilter[].OnAuthorization`   | __AuthorizeAttribute__
 9    | `IActionFilter[].OnActionExecuting`        | __ActionFilterAttribute__
