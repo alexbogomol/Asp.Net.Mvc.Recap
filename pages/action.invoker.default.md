@@ -244,3 +244,19 @@ public virtual bool InvokeAction(ControllerContext controllerContext, string act
     return true;
 }
 ```
+
+#### Step #1: InvokeAuthenticationFilters
+
+![InvokeAuthenticationFilters](../images/invoke.authentication.filters.png)
+
+#### Step #2: InvokeAuthorizationFilters
+
+![InvokeAuthorizationFilters](../images/invoke.authorization.filters.png)
+
+#### Step #3: InvokeActionMethodWithFilters
+
+![InvokeAuthorizationFilters](../images/execute.action.method.png)
+
+#### Step #4: InvokeActionResultWithFilters
+
+![InvokeAuthorizationFilters](../images/execute.result.png)
