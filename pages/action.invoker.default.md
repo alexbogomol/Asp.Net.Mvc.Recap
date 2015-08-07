@@ -138,6 +138,8 @@ public virtual bool InvokeAction(ControllerContext controllerContext, string act
     ActionDescriptor actionDescriptor = FindAction(controllerContext, 
                                                    controllerDescriptor,
                                                    actionName);
+                                                   
+    if (actionDescriptor == null) return false;
 
     FilterInfo filterInfo = GetFilters(controllerContext, 
                                        actionDescriptor);
@@ -249,14 +251,299 @@ public virtual bool InvokeAction(ControllerContext controllerContext, string act
 
 ![InvokeAuthenticationFilters](../images/invoke.authentication.filters.png)
 
+The code:
+
+```csharp
+protected virtual AuthenticationContext InvokeAuthenticationFilters(ControllerContext controllerContext,
+                                                                    IList<IAuthenticationFilter> filters, 
+                                                                    ActionDescriptor actionDescriptor)
+{
+    IPrincipal originalPrincipal = controllerContext.HttpContext.User;
+    
+    AuthenticationContext context = new AuthenticationContext(controllerContext, 
+                                                              actionDescriptor,
+                                                              originalPrincipal);
+    foreach (IAuthenticationFilter filter in filters)
+    {
+        filter.OnAuthentication(context);
+        // short-circuit evaluation when an error occurs
+        if (context.Result != null)
+        {
+            break;
+        }
+    }
+
+    IPrincipal newPrincipal = context.Principal;
+
+    if (newPrincipal != originalPrincipal)
+    {
+        context.HttpContext.User = newPrincipal;
+        Thread.CurrentPrincipal = newPrincipal;
+    }
+
+    return context;
+}
+```
+
 #### Step #2: InvokeAuthorizationFilters
 
 ![InvokeAuthorizationFilters](../images/invoke.authorization.filters.png)
 
-#### Step #3: InvokeActionMethodWithFilters
+The code:
 
-![InvokeAuthorizationFilters](../images/execute.action.method.png)
+```csharp
+protected virtual AuthorizationContext InvokeAuthorizationFilters(ControllerContext controllerContext, 
+                                                                  IList<IAuthorizationFilter> filters, 
+                                                                  ActionDescriptor actionDescriptor)
+{
+    AuthorizationContext context = new AuthorizationContext(controllerContext, actionDescriptor);
+    
+    foreach (IAuthorizationFilter filter in filters)
+    {
+        filter.OnAuthorization(context);
+        // short-circuit evaluation when an error occurs
+        if (context.Result != null)
+        {
+            break;
+        }
+    }
 
-#### Step #4: InvokeActionResultWithFilters
+    return context;
+}
+```
 
-![InvokeAuthorizationFilters](../images/execute.result.png)
+#### Step #3: Model Binding Process
+
+```csharp
+
+protected virtual IDictionary<string, object> GetParameterValues(ControllerContext controllerContext, 
+                                                                 ActionDescriptor actionDescriptor)
+{
+    Dictionary<string, object> parametersDict = 
+        new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+    
+    ParameterDescriptor[] parameterDescriptors = actionDescriptor.GetParameters();
+
+    foreach (ParameterDescriptor parameterDescriptor in parameterDescriptors)
+    {
+        parametersDict[parameterDescriptor.ParameterName] = 
+            GetParameterValue(controllerContext, parameterDescriptor);
+    }
+    
+    return parametersDict;
+}
+
+protected virtual object GetParameterValue(ControllerContext controllerContext, 
+                                           ParameterDescriptor parameterDescriptor)
+{
+    // collect all of the necessary binding properties
+    Type parameterType = parameterDescriptor.ParameterType;
+    IModelBinder binder = GetModelBinder(parameterDescriptor);
+    IValueProvider valueProvider = controllerContext.Controller.ValueProvider;
+    string parameterName = parameterDescriptor.BindingInfo.Prefix ?? parameterDescriptor.ParameterName;
+    Predicate<string> propertyFilter = GetPropertyFilter(parameterDescriptor);
+
+    // finally, call into the binder
+    ModelBindingContext bindingContext = new ModelBindingContext()
+    {
+        // only fall back if prefix not specified
+        FallbackToEmptyPrefix = (parameterDescriptor.BindingInfo.Prefix == null), 
+        ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(null, parameterType),
+        ModelName = parameterName,
+        ModelState = controllerContext.Controller.ViewData.ModelState,
+        PropertyFilter = propertyFilter,
+        ValueProvider = valueProvider
+    };
+
+    object result = binder.BindModel(controllerContext, bindingContext);
+    
+    return result ?? parameterDescriptor.DefaultValue;
+}
+
+```
+
+#### Step #4: InvokeActionMethodWithFilters
+
+![InvokeActionMethodWithFilters](../images/execute.action.method.png)
+
+The code:
+
+```csharp
+protected virtual ActionExecutedContext InvokeActionMethodWithFilters(ControllerContext controllerContext, 
+                                                                      IList<IActionFilter> filters, 
+                                                                      ActionDescriptor actionDescriptor, 
+                                                                      IDictionary<string, object> parameters)
+{
+    ActionExecutingContext preContext = new ActionExecutingContext(controllerContext, 
+                                                                   actionDescriptor, 
+                                                                   parameters);
+   
+    Func<ActionExecutedContext> continuation = () => new ActionExecutedContext(controllerContext, 
+                                                                               actionDescriptor, 
+                                                                               false /* canceled */, 
+                                                                               null /* exception */)
+                                                     {
+                                                         Result = InvokeActionMethod(controllerContext, 
+                                                                                     actionDescriptor, 
+                                                                                     parameters)
+                                                     };
+
+    // need to reverse the filter list because the continuations are built up backward
+    Func<ActionExecutedContext> thunk = filters.Reverse()
+                                               .Aggregate(continuation, 
+                                                          (next, filter) => () => InvokeActionMethodFilter(filter, 
+                                                                                                           preContext, 
+                                                                                                           next));
+    return thunk();
+}
+
+protected virtual ActionResult InvokeActionMethod(ControllerContext controllerContext, 
+                                                  ActionDescriptor actionDescriptor, 
+                                                  IDictionary<string, object> parameters)
+{
+    object returnValue = actionDescriptor.Execute(controllerContext, parameters);
+    
+    ActionResult result = CreateActionResult(controllerContext, actionDescriptor, returnValue);
+    
+    return result;
+}
+
+internal static ActionExecutedContext InvokeActionMethodFilter(IActionFilter filter, 
+                                                               ActionExecutingContext preContext, 
+                                                               Func<ActionExecutedContext> continuation)
+{
+    filter.OnActionExecuting(preContext);
+    if (preContext.Result != null)
+    {
+        return new ActionExecutedContext(preContext, preContext.ActionDescriptor, true /* canceled */, null /* exception */)
+        {
+            Result = preContext.Result
+        };
+    }
+
+    bool wasError = false;
+    ActionExecutedContext postContext = null;
+    try
+    {
+        postContext = continuation();
+    }
+    catch (ThreadAbortException)
+    {
+        // This type of exception occurs as a result of Response.Redirect(), but we special-case so that
+        // the filters don't see this as an error.
+        postContext = new ActionExecutedContext(preContext, preContext.ActionDescriptor, false /* canceled */, null /* exception */);
+        filter.OnActionExecuted(postContext);
+        throw;
+    }
+    catch (Exception ex)
+    {
+        wasError = true;
+        postContext = new ActionExecutedContext(preContext, preContext.ActionDescriptor, false /* canceled */, ex);
+        filter.OnActionExecuted(postContext);
+        if (!postContext.ExceptionHandled)
+        {
+            throw;
+        }
+    }
+    if (!wasError)
+    {
+        filter.OnActionExecuted(postContext);
+    }
+    return postContext;
+}
+```
+
+#### Step #5: InvokeActionResultWithFilters
+
+![InvokeActionResultWithFilters](../images/execute.result.png)
+
+For compatibility, the following behavior must be maintained:
+* The __OnResultExecuting__ events must fire in forward order
+* The __InvokeActionResult__ must then fire
+* The __OnResultExecuted__ events must fire in reverse order
+* Earlier filters can process the results and exceptions from the handling of later filters
+
+This is achieved by calling recursively and moving through the filter list forwards
+
+The code:
+
+```csharp
+protected virtual ResultExecutedContext InvokeActionResultWithFilters(ControllerContext controllerContext, 
+                                                                      IList<IResultFilter> filters, 
+                                                                      ActionResult actionResult)
+{
+    ResultExecutingContext preContext = new ResultExecutingContext(controllerContext, 
+                                                                   actionResult);
+    int startingFilterIndex = 0;
+    
+    return InvokeActionResultFilterRecursive(filters, 
+                                             startingFilterIndex, 
+                                             preContext, 
+                                             controllerContext, 
+                                             actionResult);
+}
+
+private ResultExecutedContext InvokeActionResultFilterRecursive(IList<IResultFilter> filters, 
+                                                                int filterIndex, 
+                                                                ResultExecutingContext preContext, 
+                                                                ControllerContext controllerContext, 
+                                                                ActionResult actionResult)
+{
+    // If there are no more filters to recurse over, create the main result
+    if (filterIndex > filters.Count - 1)
+    {
+        InvokeActionResult(controllerContext, actionResult);
+        return new ResultExecutedContext(controllerContext, actionResult, canceled: false, exception: null);
+    }
+
+    // Otherwise process the filters recursively
+    IResultFilter filter = filters[filterIndex];
+    filter.OnResultExecuting(preContext);
+    if (preContext.Cancel)
+    {
+        return new ResultExecutedContext(preContext, preContext.Result, canceled: true, exception: null);
+    }
+
+    bool wasError = false;
+    ResultExecutedContext postContext = null;
+    try
+    {
+        // Use the filters in forward direction
+        int nextFilterIndex = filterIndex + 1;
+        postContext = InvokeActionResultFilterRecursive(filters, nextFilterIndex, preContext, controllerContext, actionResult);
+    }
+    catch (ThreadAbortException)
+    {
+        // This type of exception occurs as a result of Response.Redirect(), but we special-case so that
+        // the filters don't see this as an error.
+        postContext = new ResultExecutedContext(preContext, preContext.Result, canceled: false, exception: null);
+        filter.OnResultExecuted(postContext);
+        throw;
+    }
+    catch (Exception ex)
+    {
+        wasError = true;
+        postContext = new ResultExecutedContext(preContext, preContext.Result, canceled: false, exception: ex);
+        filter.OnResultExecuted(postContext);
+        if (!postContext.ExceptionHandled)
+        {
+            throw;
+        }
+    }
+    if (!wasError)
+    {
+        filter.OnResultExecuted(postContext);
+    }
+    return postContext;
+}
+```
+
+#### Step #6: InvokeActionResult
+
+```csharp
+protected virtual void InvokeActionResult(ControllerContext controllerContext, 
+                                          ActionResult actionResult)
+{
+    actionResult.ExecuteResult(controllerContext);
+}
+```
